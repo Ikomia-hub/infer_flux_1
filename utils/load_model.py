@@ -1,4 +1,5 @@
 import torch
+from huggingface_hub import login
 from diffusers import FluxTransformer2DModel, FluxPipeline
 from transformers import T5EncoderModel
 from optimum.quanto import freeze, qfloat8, quantize, QuantizedDiffusersModel, QuantizedTransformersModel
@@ -29,21 +30,22 @@ def check_float16_and_bfloat16_support():
 def get_model_info(parameters):
     if parameters.model_name=='flux1-dev-fp8':
         model_lk = "https://huggingface.co/Kijai/flux-fp8/blob/main/flux1-dev-fp8.safetensors"
-        token = None
+        if parameters.token:
+            login(token=parameters.token)
+        else:
+            print('Please use a Hugging Face token to use the FLUX dev model')
         repo = "black-forest-labs/FLUX.1-dev"
         model_version = "dev"
 
     if parameters.model_name=='flux1-schnell-fp8':
         model_lk = "https://huggingface.co/Kijai/flux-fp8/blob/main/flux1-schnell-fp8.safetensors"
-        token = parameters.token
         repo = "black-forest-labs/FLUX.1-schnell"
         model_version = "schnell"
 
-    return model_lk, repo, token, model_version
-
+    return model_lk, repo, model_version
 
 def load_pipe(param, folder_path):
-    model_link, bfl_repo, token_hf, model_type = get_model_info(param)
+    model_link, bfl_repo, model_type = get_model_info(param)
 
     float16_support, bfloat16_support = check_float16_and_bfloat16_support()
     dtype = torch.bfloat16 if bfloat16_support else torch.float16 \
@@ -61,21 +63,20 @@ def load_pipe(param, folder_path):
             model_link,
             torch_dtype=dtype,
             cache_dir=folder_path
-        )
+            )
         qtransformer = QuantizedFlux2DModel.quantize(transformer, weights=qfloat8)
 
         print(f"Saving quantized FLUX {model_type} model...")
         qtransformer.save_pretrained(f"{folder_path}/flux_{model_type}_qfp8")
     else:
-        print(f'Quantized FLUX {model_type} model available at {folder_path}/flux_{model_type}_qfp8')
+        print(f'Quantized FLUX {model_type} available at {folder_path}/flux_{model_type}_qfp8')
 
     print('Preparing the T5 encoder  model for FP8 inference, this may take a while...')
     text_encoder_2 = T5EncoderModel.from_pretrained(
                                         bfl_repo,
                                         subfolder="text_encoder_2",
                                         torch_dtype=dtype,
-                                        cache_dir=folder_path,
-                                        token=token_hf)
+                                        cache_dir=folder_path)
     quantize(text_encoder_2, weights=qfloat8)
     freeze(text_encoder_2)
 
