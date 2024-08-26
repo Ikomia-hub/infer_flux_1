@@ -83,6 +83,8 @@ class InferFlux1(core.CWorkflowTask):
         else:
             self.set_param_object(copy.deepcopy(param))
 
+        current_param = self.get_param_object()
+        self.model_name = current_param.model_name
         self.device = torch.device("cpu")
         self.pipe = None
         self.generator = None
@@ -103,6 +105,14 @@ class InferFlux1(core.CWorkflowTask):
                 self.seed = seed_num
             self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
+    def check_output_size(self, wd, hgt):
+        if wd % 8 != 0:
+            self.width = wd // 8 * 8
+            print("Updating width to {} to be a multiple of 8".format(wd))
+        if hgt % 8 != 0:
+            self.height = hgt // 8 * 8
+            print("Updating height to {} to be a multiple of 8".format(hgt))
+
     def run(self):
         # Main function of your algorithm
         # Call begin_task_run() for initialization
@@ -112,11 +122,12 @@ class InferFlux1(core.CWorkflowTask):
         param = self.get_param_object()
 
         # Load pipeline
-        if self.pipe is None:
+        if self.pipe is None or self.model_name != param.model_name:
+            self.model_name = param.model_name
             self.pipe = load_pipe(param, self.model_folder)
 
-        
         self.set_generator(param.seed)
+        self.check_output_size(param.width, param.height)
 
         # Inference
         with torch.no_grad():
@@ -125,6 +136,7 @@ class InferFlux1(core.CWorkflowTask):
                             guidance_scale = param.guidance_scale,
                             generator = self.generator,
                             num_inference_steps = param.num_inference_steps,
+                            num_images_per_prompt = param.num_images_per_prompt,
                             width=self.width,
                             height=self.height
                             ).images
