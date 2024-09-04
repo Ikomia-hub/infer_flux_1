@@ -97,13 +97,14 @@ class InferFlux1(core.CWorkflowTask):
         # Function returning the number of progress steps for this algorithm
         # This is handled by the main progress bar of Ikomia Studio
         return 1
-    
+
     def set_generator(self, seed_num):
-            if seed_num == -1:
-                self.seed = random.randint(0, 191965535)
-            else:
-                self.seed = seed_num
-            self.generator = torch.Generator(self.device).manual_seed(self.seed)
+        self.width, self.height = wd, hgt
+        if seed_num == -1:
+            self.seed = random.randint(0, 191965535)
+        else:
+            self.seed = seed_num
+        self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
     def check_output_size(self, wd, hgt):
         if wd % 8 != 0:
@@ -201,7 +202,7 @@ class InferFlux1Factory(dataprocess.CTaskFactory):
         self.info.repository = "https://github.com/Ikomia-hub/infer_flux_1"
         self.info.original_repository = "https://github.com/black-forest-labs/flux"
 
-        self.info.keywords = "Diffusion, Hugging Face, Black Forest,text-to-image, Generative"
+        self.info.keywords = "Diffusion, Hugging Face, Black Forest Labs,text-to-image, Generative"
         self.info.algo_type = core.AlgoType.INFER
         self.info.algo_tasks = "IMAGE_GENERATION"
 
