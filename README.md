@@ -45,7 +45,7 @@ from ikomia.utils.displayIO import display
 wf = Workflow()
 
 # Add algorithm
-algo = wf.add_task(name="infer_stable_flux_1", auto_connect=False)
+algo = wf.add_task(name="infer_flux_1", auto_connect=False)
 
 # Run directly on your image
 wf.run()
@@ -80,7 +80,7 @@ from ikomia.utils.displayIO import display
 wf = Workflow()
 
 # Add algorithm
-algo = wf.add_task(name = "infer_stable_flux_1", auto_connect=False)
+algo = wf.add_task(name = "infer_flux_1", auto_connect=False)
 
 algo.set_parameters({
     'model_name': 'flux1-schnell-fp8',
@@ -116,7 +116,7 @@ from ikomia.dataprocess.workflow import Workflow
 wf = Workflow()
 
 # Add algorithm
-algo = wf.add_task(name="infer_stable_flux_1", auto_connect=False)
+algo = wf.add_task(name="infer_flux_1", auto_connect=False)
 
 # Run  
 wf.run()
