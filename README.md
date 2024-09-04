@@ -23,7 +23,7 @@ Flux is a series of text-to-image generation models utilizing diffusion transfor
 
 ![illustration](https://github.com/black-forest-labs/flux/blob/main/assets/grid.jpg?raw=true)
 
-*This FLUX1 algorithm runs FP8 inference and requires about 16 GB of VRAM.*
+*This FLUX1 algorithm runs FP8 inference and requires about 16 GB of VRAM and 30GB of CPU memory.*
 
 ## :rocket: Use with Ikomia API
 
