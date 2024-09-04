@@ -99,7 +99,6 @@ class InferFlux1(core.CWorkflowTask):
         return 1
 
     def set_generator(self, seed_num):
-        self.width, self.height = wd, hgt
         if seed_num == -1:
             self.seed = random.randint(0, 191965535)
         else:
@@ -107,6 +106,7 @@ class InferFlux1(core.CWorkflowTask):
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
     def check_output_size(self, wd, hgt):
+        self.width, self.height = wd, hgt
         if wd % 8 != 0:
             self.width = wd // 8 * 8
             print("Updating width to {} to be a multiple of 8".format(wd))
