@@ -70,6 +70,9 @@ Ikomia Studio offers a friendly UI with the same features as the API.
 - **num_images_per_prompt** (int) - default '1': Number of generated image(s).
 - **seed** (int) - default '-1': Seed value. '-1' generates a random number between 0 and 191965535.
 - **token** (str) - default '' : Your Hugging Face user token ('Read' rights). 
+- **enable_model_cpu_offload** (bool) - default 'False' : Offloads all models to CPU using accelerate, reducing memory usage with a low impact on performance. This method moves one whole model at a time to the GPU when its forward method is called, and the model remains in GPU until the next model runs. 
+- **vae_enable_slicing** (bool) - default 'False' : Enable sliced VAE decoding. When this option is enabled, the VAE will split the input tensor in slices to compute decoding in several steps. This is useful to save some memory and allow larger batch sizes.
+- **vae_enable_tiling** (bool) - default 'False' : Enable tiled VAE decoding. When this option is enabled, the VAE will split the input tensor into tiles to compute decoding and encoding in several steps. This is useful to save a large amount of memory and to allow the processing of larger images.
 
 
 ```python
@@ -92,6 +95,7 @@ algo.set_parameters({
     'height': '1024',
     'num_images_per_prompt':'1',
     'token': '[YOUR HF USER TOKEN]', # Only for the dev model version
+    'enable_model_cpu_offload': 'False'
     })
 
 # Generate your image
