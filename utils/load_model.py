@@ -1,16 +1,9 @@
 import torch
 from huggingface_hub import login
-from diffusers import FluxTransformer2DModel, FluxPipeline
-from transformers import T5EncoderModel
-from optimum.quanto import freeze, qfloat8, quantize, QuantizedDiffusersModel, QuantizedTransformersModel
+from diffusers import DiffusionPipeline, FluxTransformer2DModel, AutoencoderKL
+from transformers import T5EncoderModel, CLIPTextModel
+from torchao.quantization import quantize_, int8_weight_only
 import os
-
-
-class QuantizedFlux2DModel(QuantizedDiffusersModel):
-    base_class = FluxTransformer2DModel
-
-class QuantizedT5Model(QuantizedTransformersModel):
-    auto_class = T5EncoderModel
 
 
 def check_float16_and_bfloat16_support():
@@ -26,10 +19,8 @@ def check_float16_and_bfloat16_support():
     else:
         return False, False
 
-
 def get_model_info(parameters):
-    if parameters.model_name=='flux1-dev-fp8':
-        model_lk = "https://huggingface.co/Kijai/flux-fp8/blob/main/flux1-dev-fp8.safetensors"
+    if parameters.model_name=='flux1-dev':
         if parameters.token:
             login(token=parameters.token)
         else:
@@ -37,15 +28,14 @@ def get_model_info(parameters):
         repo = "black-forest-labs/FLUX.1-dev"
         model_version = "dev"
 
-    if parameters.model_name=='flux1-schnell-fp8':
-        model_lk = "https://huggingface.co/Kijai/flux-fp8/blob/main/flux1-schnell-fp8.safetensors"
+    if parameters.model_name=='flux1-schnell':
         repo = "black-forest-labs/FLUX.1-schnell"
         model_version = "schnell"
 
-    return model_lk, repo, model_version
+    return repo, model_version
 
 def load_pipe(param, folder_path):
-    model_link, bfl_repo, model_type = get_model_info(param)
+    ckpt_id, model_type = get_model_info(param)
 
     float16_support, bfloat16_support = check_float16_and_bfloat16_support()
     dtype = torch.bfloat16 if bfloat16_support else torch.float16 \
@@ -56,43 +46,91 @@ def load_pipe(param, folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
-    safetensor_model_path = os.path.join(folder_path, f"flux_{model_type}_qfp8", "diffusion_pytorch_model-00001-of-00002.safetensors")
-    if not os.path.exists(safetensor_model_path):
+    # Quantization process:
+    ############ Diffusion Transformer ############
+    transformer_pt = f"{folder_path}/flux_{model_type}_int8.pt"
+    if not os.path.exists(transformer_pt):
         print(f"Preparing the FLUX {model_type} model for FP8 inference, this may take a while...")
-        transformer = FluxTransformer2DModel.from_single_file(
-            model_link,
-            torch_dtype=dtype,
-            cache_dir=folder_path
-            )
-        qtransformer = QuantizedFlux2DModel.quantize(transformer, weights=qfloat8)
+        print("Quantization - step 1/4: FLUX transformer quantization")
+        transformer = FluxTransformer2DModel.from_pretrained(
+            ckpt_id, subfolder="transformer", torch_dtype=torch.bfloat16, cache_dir=folder_path
+        )
+        quantize_(transformer, int8_weight_only())
+        torch.save(transformer.state_dict(), transformer_pt)
 
-        print(f"Saving quantized FLUX {model_type} model...")
-        qtransformer.save_pretrained(f"{folder_path}/flux_{model_type}_qfp8")
-    else:
-        print(f'Quantized FLUX {model_type} available at {folder_path}/flux_{model_type}_qfp8')
+    ############ Text Encoder ############
+    te1_pt = f"{folder_path}/flux_{model_type}_te1_int8.pt"
+    if not os.path.exists(te1_pt):
+        print("Quantization - step 2/4: CLIP ViT large encoder quantization")
+        text_encoder = CLIPTextModel.from_pretrained(
+            ckpt_id, subfolder="text_encoder", torch_dtype=torch.bfloat16, cache_dir=folder_path
+        )
+        quantize_(text_encoder, int8_weight_only())
+        torch.save(text_encoder.state_dict(), te1_pt)
 
-    print('Preparing the T5 encoder  model for FP8 inference, this may take a while...')
+    ############ Text Encoder 2 ############
+    te2_pt = f"{folder_path}/flux_{model_type}_te2_int8.pt"
+    if not os.path.exists(te2_pt):
+        print("Quantization - step 3/4: T5xxl encoder quantization")
+        text_encoder_2 = T5EncoderModel.from_pretrained(
+            ckpt_id, subfolder="text_encoder_2", torch_dtype=torch.bfloat16, cache_dir=folder_path
+        )
+        quantize_(text_encoder_2, int8_weight_only())
+        torch.save(text_encoder_2.state_dict(), te2_pt)
+
+    ############ VAE ############
+    vae_pt = f"{folder_path}/flux_{model_type}_vae_int8.pt"
+    if not os.path.exists(vae_pt):
+        print("Quantization - step 4/4: VAE quantization")
+        vae = AutoencoderKL.from_pretrained(
+            ckpt_id, subfolder="vae", torch_dtype=torch.bfloat16, cache_dir=folder_path
+        )
+        quantize_(vae, int8_weight_only())
+        torch.save(vae.state_dict(), vae_pt)
+
+        torch.cuda.empty_cache()
+
+    # Loading quantized models
+    print("Loading FP8 quantized models")
+    with torch.device("meta"):
+        config = FluxTransformer2DModel.load_config(ckpt_id, subfolder="transformer")
+        transformer = FluxTransformer2DModel.from_config(config).to(dtype)
+
+    ############ Diffusion Transformer ############
+    state_dict = torch.load(transformer_pt, map_location="cpu")
+    transformer.load_state_dict(state_dict, assign=True)
+
+    ############ Text Encoder ############
+    text_encoder = CLIPTextModel.from_pretrained(
+        ckpt_id, subfolder="text_encoder", torch_dtype=torch.bfloat16
+    )
+    state_dict = torch.load(te1_pt, map_location="cpu")
+    text_encoder.load_state_dict(state_dict, assign=True)
+
+    ############ Text Encoder 2 ############
     text_encoder_2 = T5EncoderModel.from_pretrained(
-                                        bfl_repo,
-                                        subfolder="text_encoder_2",
-                                        torch_dtype=dtype,
-                                        cache_dir=folder_path)
-    quantize(text_encoder_2, weights=qfloat8)
-    freeze(text_encoder_2)
+        ckpt_id, subfolder="text_encoder_2", torch_dtype=torch.bfloat16
+    )
+    state_dict = torch.load(te2_pt, map_location="cpu")
+    text_encoder_2.load_state_dict(state_dict, assign=True)
 
-    # Loading
-    print("Loading FLUX pipeline...")
-    qtransformer = QuantizedFlux2DModel.from_pretrained(f"{folder_path}/flux_{model_type}_qfp8")
-    qtransformer.to(device=device, dtype=dtype)
+    ############ VAE ############
+    vae = AutoencoderKL.from_pretrained(
+        ckpt_id, subfolder="vae", torch_dtype=torch.bfloat16
+    )
+    state_dict = torch.load(vae_pt, map_location="cpu")
+    vae.load_state_dict(state_dict, assign=True)
 
-    pipe = FluxPipeline.from_pretrained(
-                                bfl_repo,
-                                transformer=None,
-                                text_encoder_2=None,
-                                torch_dtype=dtype)
-    pipe.transformer = qtransformer
-    pipe.text_encoder_2 = text_encoder_2
-    pipe.to(device)
+    # Load pipeline
+    print("Loading FLUX pipeline")
+    pipe = DiffusionPipeline.from_pretrained(
+        ckpt_id, 
+        transformer=transformer,
+        vae=vae,
+        text_encoder=text_encoder,
+        text_encoder_2=text_encoder_2,
+        torch_dtype=dtype,
+    ).to(device)
 
     if param.enable_model_cpu_offload:
         pipe.enable_model_cpu_offload()

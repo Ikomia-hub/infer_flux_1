@@ -5,4 +5,4 @@ diffusers>=0.30.0
 transformers>=4.44.1
 sentencepiece>=0.2.0
 accelerate>=0.33.0
-optimum-quanto==0.2.4
+torchao==0.4.0
