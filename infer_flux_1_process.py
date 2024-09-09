@@ -24,7 +24,7 @@ class InferFlux1Param(core.CWorkflowTaskParam):
         self.width = 1024
         self.height = 1024
         self.num_images_per_prompt = 1
-        self.enable_model_cpu_offload = True
+        self.enable_model_cpu_offload = False
         self.vae_enable_slicing = False
         self.vae_enable_tiling = False
         self.update = False
@@ -92,6 +92,7 @@ class InferFlux1(core.CWorkflowTask):
         self.width = 1024
         self.height = 1024
         self.model_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights")
+        self.max_sequence_length = 256
 
     def get_progress_steps(self):
         # Function returning the number of progress steps for this algorithm
@@ -130,6 +131,12 @@ class InferFlux1(core.CWorkflowTask):
         self.set_generator(param.seed)
         self.check_output_size(param.width, param.height)
 
+        # Checking max sequence lenght:
+        if self.model_name=="flux1-schnell":
+            self.max_sequence_length = 256
+        else:
+            self.max_sequence_length = 512
+
         # Inference
         with torch.no_grad():
             results = self.pipe(
@@ -139,7 +146,8 @@ class InferFlux1(core.CWorkflowTask):
                             num_inference_steps = param.num_inference_steps,
                             num_images_per_prompt = param.num_images_per_prompt,
                             width=self.width,
-                            height=self.height
+                            height=self.height,
+                            max_sequence_length=self.max_sequence_length
                             ).images
 
         print(f"Prompt:\t{param.prompt}\nSeed:\t{self.seed}")
