@@ -14,7 +14,7 @@ class InferFlux1Param(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
-        self.model_name = "flux1-schnell-fp8"
+        self.model_name = "flux1-schnell"
         self.prompt = "A cat holding a sign that says hello world, outdoor, garden"
         self.token = ""
         self.cuda = torch.cuda.is_available()

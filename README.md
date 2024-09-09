@@ -60,8 +60,8 @@ Ikomia Studio offers a friendly UI with the same features as the API.
 - For additional guidance on getting started with Ikomia Studio, check out [this blog post](https://www.ikomia.ai/blog/how-to-get-started-with-ikomia-studio).
 
 ## :pencil: Set algorithm parameters
-- **model_name** (str) - default 'flux1-dev-fp8': Name of the stable diffusion model. Other model available:
-    - flux1-schnell-fp8
+- **model_name** (str) - default 'flux1-dev': Name of the stable diffusion model. Other model available:
+    - flux1-schnell
 - **prompt** (str) - default 'A cat holding a sign that says hello world, outdoor, garden' : Text prompt to guide the image generation.
 - **num_inference_steps** (int) - default '4': Number of inference steps
 - **guidance_scale** (float) - default '0.0':  Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality. (minimum: 1; maximum: 20).
@@ -83,7 +83,7 @@ wf = Workflow()
 algo = wf.add_task(name = "infer_flux_1", auto_connect=False)
 
 algo.set_parameters({
-    'model_name': 'flux1-schnell-fp8',
+    'model_name': 'flux1-schnell',
     'prompt': 'A cat holding a sign that says hello world',
     'num_inference_steps': '4',
     'guidance_scale': '0',

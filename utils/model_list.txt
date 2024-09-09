@@ -1,2 +1,2 @@
-flux1-schnell-fp8
-flux1-dev-fp8
+flux1-schnell
+flux1-dev
