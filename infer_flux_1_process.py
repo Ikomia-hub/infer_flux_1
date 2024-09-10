@@ -5,6 +5,8 @@ import os
 import numpy as np
 from ikomia import core, dataprocess, utils
 from infer_flux_1.utils.load_model import load_pipe
+
+
 # --------------------
 # - Class to handle the algorithm parameters
 # - Inherits PyCore.CWorkflowTaskParam from Ikomia API
@@ -50,20 +52,21 @@ class InferFlux1Param(core.CWorkflowTaskParam):
     def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = {}
-        param_map["model_name"] = str(self.model_name)
-        param_map["prompt"] = str(self.prompt)
-        param_map["token"] = str(self.token)
-        param_map["cuda"] = str(self.cuda)
-        param_map["guidance_scale"] = str(self.guidance_scale)
-        param_map["num_inference_steps"] = str(self.num_inference_steps)
-        param_map["seed"] = str(self.seed)
-        param_map["width"] = str(self.width)
-        param_map["height"] = str(self.height)
-        param_map["num_images_per_prompt"] = str(self.num_images_per_prompt)
-        param_map["enable_model_cpu_offload"] = str(self.enable_model_cpu_offload)
-        param_map["vae_enable_slicing"] = str(self.vae_enable_slicing)
-        param_map["vae_enable_tiling"] = str(self.vae_enable_tiling)
+        param_map = {
+            "model_name": str(self.model_name),
+            "prompt": str(self.prompt),
+            "token": str(self.token),
+            "cuda": str(self.cuda),
+            "guidance_scale": str(self.guidance_scale),
+            "num_inference_steps": str(self.num_inference_steps),
+            "seed": str(self.seed),
+            "width": str(self.width),
+            "height": str(self.height),
+            "num_images_per_prompt": str(self.num_images_per_prompt),
+            "enable_model_cpu_offload": str(self.enable_model_cpu_offload),
+            "vae_enable_slicing": str(self.vae_enable_slicing),
+            "vae_enable_tiling": str(self.vae_enable_tiling)
+        }
         return param_map
 
 
@@ -104,6 +107,7 @@ class InferFlux1(core.CWorkflowTask):
             self.seed = random.randint(0, 191965535)
         else:
             self.seed = seed_num
+
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
     def check_output_size(self, wd, hgt):
@@ -131,8 +135,8 @@ class InferFlux1(core.CWorkflowTask):
         self.set_generator(param.seed)
         self.check_output_size(param.width, param.height)
 
-        # Checking max sequence lenght:
-        if self.model_name=="flux1-schnell":
+        # Checking max sequence length:
+        if self.model_name == "flux1-schnell":
             self.max_sequence_length = 256
         else:
             self.max_sequence_length = 512
@@ -141,10 +145,10 @@ class InferFlux1(core.CWorkflowTask):
         with torch.no_grad():
             results = self.pipe(
                             param.prompt,
-                            guidance_scale = param.guidance_scale,
-                            generator = self.generator,
-                            num_inference_steps = param.num_inference_steps,
-                            num_images_per_prompt = param.num_images_per_prompt,
+                            guidance_scale=param.guidance_scale,
+                            generator=self.generator,
+                            num_inference_steps=param.num_inference_steps,
+                            num_images_per_prompt=param.num_images_per_prompt,
                             width=self.width,
                             height=self.height,
                             max_sequence_length=self.max_sequence_length
@@ -169,7 +173,6 @@ class InferFlux1(core.CWorkflowTask):
 
         # Call end_task_run() to finalize process
         self.end_task_run()
-
 
 
 # --------------------

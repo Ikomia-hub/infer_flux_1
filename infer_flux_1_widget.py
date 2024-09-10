@@ -6,6 +6,7 @@ from infer_flux_1.utils.widget_utils import Autocomplete
 # PyQt GUI framework
 from PyQt5.QtWidgets import *
 
+
 # --------------------
 # - Class which implements widget associated with the algorithm
 # - Inherits PyCore.CWorkflowTaskWidget from Ikomia API
@@ -26,11 +27,7 @@ class InferFlux1Widget(core.CWorkflowTaskWidget):
         layout_ptr = qtconversion.PyQtToQt(self.grid_layout)
 
         # Model name
-        model_list_path = os.path.join(os.path.dirname(
-                                            os.path.realpath(__file__)),
-                                            'utils',
-                                            "model_list.txt")
-        print(model_list_path)
+        model_list_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'utils', "model_list.txt")
         model_list_file = open(model_list_path, "r")
 
         model_list = model_list_file.read()
@@ -51,7 +48,6 @@ class InferFlux1Widget(core.CWorkflowTaskWidget):
                                                     "Negative prompt",
                                                     self.parameters.negative_prompt
                                                     )
-
 
         # Number of inference steps
         self.spin_number_of_steps = pyqtutils.append_spin(
@@ -100,24 +96,23 @@ class InferFlux1Widget(core.CWorkflowTaskWidget):
 
         # Cuda
         self.check_enable_model_cpu_offload = pyqtutils.append_check(self.grid_layout,
-                                                 "Enable model CPU offload",
-                                                 self.parameters.enable_model_cpu_offload)
+                                                                     "Enable model CPU offload",
+                                                                     self.parameters.enable_model_cpu_offload)
 
         # Cuda
         self.check_vae_enable_slicing = pyqtutils.append_check(self.grid_layout,
-                                                 "VAE enable slicing",
-                                                 self.parameters.vae_enable_slicing)
+                                                               "VAE enable slicing",
+                                                               self.parameters.vae_enable_slicing)
 
         # Cuda
         self.check_vae_enable_tiling = pyqtutils.append_check(self.grid_layout,
-                                                 "VAE enable tiling",
-                                                 self.parameters.vae_enable_tiling)
+                                                              "VAE enable tiling",
+                                                              self.parameters.vae_enable_tiling)
         # token
         self.edit_token = pyqtutils.append_edit(self.grid_layout, "Token Hugging Face", self.parameters.token)
 
         # Set widget layout
         self.set_layout(layout_ptr)
-
 
     def on_apply(self):
         # Apply button clicked slot
@@ -135,6 +130,7 @@ class InferFlux1Widget(core.CWorkflowTaskWidget):
         self.parameters.enable_model_cpu_offload = self.check_enable_model_cpu_offload.isChecked()
         self.parameters.vae_enable_slicing = self.check_vae_enable_slicing.isChecked()
         self.parameters.vae_enable_tiling = self.check_vae_enable_tiling.isChecked()
+
 
 # --------------------
 # - Factory class to build algorithm widget object
