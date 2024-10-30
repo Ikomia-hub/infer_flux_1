@@ -29,6 +29,7 @@ class InferFlux1Param(core.CWorkflowTaskParam):
         self.enable_model_cpu_offload = False
         self.vae_enable_slicing = False
         self.vae_enable_tiling = False
+        self.lora_weight_file = ""
         self.update = False
 
     def set_values(self, param_map):
@@ -44,9 +45,13 @@ class InferFlux1Param(core.CWorkflowTaskParam):
         self.width = int(param_map["width"])
         self.height = int(param_map["height"])
         self.num_images_per_prompt = int(param_map["num_images_per_prompt"])
-        self.enable_model_cpu_offload = utils.strtobool(param_map["enable_model_cpu_offload"])
-        self.vae_enable_slicing = utils.strtobool(param_map["vae_enable_slicing"])
-        self.vae_enable_tiling = utils.strtobool(param_map["vae_enable_tiling"])
+        self.enable_model_cpu_offload = utils.strtobool(
+            param_map["enable_model_cpu_offload"])
+        self.vae_enable_slicing = utils.strtobool(
+            param_map["vae_enable_slicing"])
+        self.vae_enable_tiling = utils.strtobool(
+            param_map["vae_enable_tiling"])
+        self.lora_weight_file = str(param_map["lora_weight_file"])
         self.update = True
 
     def get_values(self):
@@ -65,7 +70,8 @@ class InferFlux1Param(core.CWorkflowTaskParam):
             "num_images_per_prompt": str(self.num_images_per_prompt),
             "enable_model_cpu_offload": str(self.enable_model_cpu_offload),
             "vae_enable_slicing": str(self.vae_enable_slicing),
-            "vae_enable_tiling": str(self.vae_enable_tiling)
+            "vae_enable_tiling": str(self.vae_enable_tiling),
+            "lora_weight_file": str(self.lora_weight_file)
         }
         return param_map
 
@@ -88,13 +94,15 @@ class InferFlux1(core.CWorkflowTask):
 
         current_param = self.get_param_object()
         self.model_name = current_param.model_name
+        self.lora_weight_file = current_param.lora_weight_file
         self.device = torch.device("cpu")
         self.pipe = None
         self.generator = None
         self.seed = None
         self.width = 1024
         self.height = 1024
-        self.model_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights")
+        self.model_folder = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "weights")
         self.max_sequence_length = 256
 
     def get_progress_steps(self):
@@ -128,8 +136,8 @@ class InferFlux1(core.CWorkflowTask):
         param = self.get_param_object()
 
         # Load pipeline
-        if self.pipe is None or self.model_name != param.model_name:
-            self.model_name = param.model_name
+        if self.pipe is None or self.model_name != param.model_name or self.lora_weight_file != param.lora_weight_file:
+            self.model_name, self.lora_weight_file = param.model_name, param.lora_weight_file
             self.pipe = load_pipe(param, self.model_folder)
 
         self.set_generator(param.seed)
@@ -144,15 +152,15 @@ class InferFlux1(core.CWorkflowTask):
         # Inference
         with torch.no_grad():
             results = self.pipe(
-                            param.prompt,
-                            guidance_scale=param.guidance_scale,
-                            generator=self.generator,
-                            num_inference_steps=param.num_inference_steps,
-                            num_images_per_prompt=param.num_images_per_prompt,
-                            width=self.width,
-                            height=self.height,
-                            max_sequence_length=self.max_sequence_length
-                            ).images
+                param.prompt,
+                guidance_scale=param.guidance_scale,
+                generator=self.generator,
+                num_inference_steps=param.num_inference_steps,
+                num_images_per_prompt=param.num_images_per_prompt,
+                width=self.width,
+                height=self.height,
+                max_sequence_length=self.max_sequence_length
+            ).images
 
         print(f"Prompt:\t{param.prompt}\nSeed:\t{self.seed}")
 
@@ -188,7 +196,7 @@ class InferFlux1Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Flux is a series of text-to-image generation models based on diffusion transformers"
         # relative path -> as displayed in Ikomia Studio algorithm tree
         self.info.path = "Plugins/Python/Diffusion"
-        self.info.version = "1.0.1"
+        self.info.version = "1.1.0"
         self.info.icon_path = "images/icon.png"
         self.info.authors = "Andreas Blattmann, Axel Sauer, Dominik Lorenz, Dustin Podell, " \
                             "Frederic Boesel, Harry Saini, Jonas Müller, Kyle Lacey, " \
