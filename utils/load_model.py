@@ -10,8 +10,10 @@ def check_float16_and_bfloat16_support():
     if torch.cuda.is_available():
         gpu = torch.device('cuda')
         compute_capability = torch.cuda.get_device_capability(gpu)
-        float16_support = compute_capability[0] >= 6  # Compute capability 6.0 or higher
-        bfloat16_support = compute_capability[0] >= 8  # Compute capability 8.0 or higher
+        # Compute capability 6.0 or higher
+        float16_support = compute_capability[0] >= 6
+        # Compute capability 8.0 or higher
+        bfloat16_support = compute_capability[0] >= 8
 
         if bfloat16_support:
             torch.backends.cuda.matmul.allow_tf32 = True
@@ -49,8 +51,9 @@ def load_pipe(param, folder_path):
 
     float16_support, bfloat16_support = check_float16_and_bfloat16_support()
     dtype = torch.bfloat16 if bfloat16_support else torch.float16 \
-                        if float16_support else torch.float32
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        if float16_support else torch.float32
+    device = torch.device(
+        "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Check if the folder exists and that there is a safetensors model in the folder
     if not os.path.exists(folder_path):
@@ -60,7 +63,8 @@ def load_pipe(param, folder_path):
     # ----- Diffusion Transformer -----
     transformer_pt = f"{folder_path}/flux_{model_type}_int8.pt"
     if not os.path.exists(transformer_pt):
-        print(f"Preparing the FLUX {model_type} model for FP8 inference, this may take a while...")
+        print(
+            f"Preparing the FLUX {model_type} model for FP8 inference, this may take a while...")
         print("Quantization - step 1/4: FLUX transformer quantization")
         transformer = FluxTransformer2DModel.from_pretrained(
             ckpt_id, subfolder="transformer", torch_dtype=torch.bfloat16, cache_dir=folder_path
@@ -102,7 +106,8 @@ def load_pipe(param, folder_path):
     # Loading quantized models
     print("Loading FP8 quantized models")
     with torch.device("meta"):
-        config = FluxTransformer2DModel.load_config(ckpt_id, subfolder="transformer")
+        config = FluxTransformer2DModel.load_config(
+            ckpt_id, subfolder="transformer")
         transformer = FluxTransformer2DModel.from_config(config).to(dtype)
 
     # ----- Diffusion Transformer -----
@@ -133,13 +138,19 @@ def load_pipe(param, folder_path):
     # Load pipeline
     print("Loading FLUX pipeline")
     pipe = DiffusionPipeline.from_pretrained(
-        ckpt_id, 
+        ckpt_id,
         transformer=transformer,
         vae=vae,
         text_encoder=text_encoder,
         text_encoder_2=text_encoder_2,
         torch_dtype=dtype,
     ).to(device)
+
+    if param.lora_weight_file:
+        # Extract folder path and file name
+        lora_folder_path = os.path.dirname(param.lora_weight_file)
+        lora_file_name = os.path.basename(param.lora_weight_file)
+        pipe.load_lora_weights(lora_folder_path, weight_name=lora_file_name)
 
     if param.enable_model_cpu_offload:
         pipe.enable_model_cpu_offload()
