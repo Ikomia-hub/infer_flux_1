@@ -189,7 +189,7 @@ class InferFlux1Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Flux is a series of text-to-image generation models based on diffusion transformers"
         # relative path -> as displayed in Ikomia Studio algorithm tree
         self.info.path = "Plugins/Python/Diffusion"
-        self.info.version = "1.0.1"
+        self.info.version = "1.1.0"
         self.info.icon_path = "images/icon.png"
         self.info.authors = "Andreas Blattmann, Axel Sauer, Dominik Lorenz, Dustin Podell, " \
                             "Frederic Boesel, Harry Saini, Jonas Müller, Kyle Lacey, " \
