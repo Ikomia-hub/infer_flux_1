@@ -94,7 +94,7 @@ algo.set_parameters({
     'width': '1024',
     'height': '1024',
     'num_images_per_prompt':'1',
-    'token': '[YOUR HF USER TOKEN]', # Only for the dev model version
+    'token': '[YOUR HF USER TOKEN]',
     'enable_model_cpu_offload': 'False'
     })
 
@@ -136,6 +136,6 @@ for output in algo.get_outputs():
 
 ## :fast_forward: Advanced usage 
 
-To run Stable Diffusion 3 you need to:
+To run FLUX 1 you need to:
 1. Generate your Hugging Face [access token](https://huggingface.co/docs/hub/security-tokens) (Type: Read)
-2. Share your contact info to Hugging Face in order to access the [Flux dev model](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)
+2. Share your contact info to Hugging Face in order to access the [Flux dev model](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main) and [Flux schnell model](https://huggingface.co/black-forest-labs/FLUX.1-schnell/tree/main)

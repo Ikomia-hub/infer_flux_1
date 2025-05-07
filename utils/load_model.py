@@ -10,8 +10,10 @@ def check_float16_and_bfloat16_support():
     if torch.cuda.is_available():
         gpu = torch.device('cuda')
         compute_capability = torch.cuda.get_device_capability(gpu)
-        float16_support = compute_capability[0] >= 6  # Compute capability 6.0 or higher
-        bfloat16_support = compute_capability[0] >= 8  # Compute capability 8.0 or higher
+        # Compute capability 6.0 or higher
+        float16_support = compute_capability[0] >= 6
+        # Compute capability 8.0 or higher
+        bfloat16_support = compute_capability[0] >= 8
 
         if bfloat16_support:
             torch.backends.cuda.matmul.allow_tf32 = True
@@ -26,16 +28,17 @@ def get_model_info(parameters):
     repo = None
     model_version = None
 
-    if parameters.model_name == 'flux1-dev':
-        if parameters.token:
-            login(token=parameters.token)
-        else:
-            print('Please use a Hugging Face token to use the FLUX dev model')
+    if not parameters.token:
+        print('Please use a Hugging Face token to use the FLUX models')
+        return None, None
 
+    login(token=parameters.token)
+
+    if parameters.model_name == 'flux1-dev':
         repo = "black-forest-labs/FLUX.1-dev"
         model_version = "dev"
 
-    if parameters.model_name == 'flux1-schnell':
+    elif parameters.model_name == 'flux1-schnell':
         repo = "black-forest-labs/FLUX.1-schnell"
         model_version = "schnell"
 
@@ -49,8 +52,9 @@ def load_pipe(param, folder_path):
 
     float16_support, bfloat16_support = check_float16_and_bfloat16_support()
     dtype = torch.bfloat16 if bfloat16_support else torch.float16 \
-                        if float16_support else torch.float32
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        if float16_support else torch.float32
+    device = torch.device(
+        "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Check if the folder exists and that there is a safetensors model in the folder
     if not os.path.exists(folder_path):
@@ -60,7 +64,8 @@ def load_pipe(param, folder_path):
     # ----- Diffusion Transformer -----
     transformer_pt = f"{folder_path}/flux_{model_type}_int8.pt"
     if not os.path.exists(transformer_pt):
-        print(f"Preparing the FLUX {model_type} model for FP8 inference, this may take a while...")
+        print(
+            f"Preparing the FLUX {model_type} model for FP8 inference, this may take a while...")
         print("Quantization - step 1/4: FLUX transformer quantization")
         transformer = FluxTransformer2DModel.from_pretrained(
             ckpt_id, subfolder="transformer", torch_dtype=torch.bfloat16, cache_dir=folder_path
@@ -102,7 +107,8 @@ def load_pipe(param, folder_path):
     # Loading quantized models
     print("Loading FP8 quantized models")
     with torch.device("meta"):
-        config = FluxTransformer2DModel.load_config(ckpt_id, subfolder="transformer")
+        config = FluxTransformer2DModel.load_config(
+            ckpt_id, subfolder="transformer")
         transformer = FluxTransformer2DModel.from_config(config).to(dtype)
 
     # ----- Diffusion Transformer -----
@@ -133,7 +139,7 @@ def load_pipe(param, folder_path):
     # Load pipeline
     print("Loading FLUX pipeline")
     pipe = DiffusionPipeline.from_pretrained(
-        ckpt_id, 
+        ckpt_id,
         transformer=transformer,
         vae=vae,
         text_encoder=text_encoder,
