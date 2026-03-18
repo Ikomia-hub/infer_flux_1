@@ -28,6 +28,7 @@ class InferFlux1Param(core.CWorkflowTaskParam):
         self.enable_model_cpu_offload = False
         self.vae_enable_slicing = False
         self.vae_enable_tiling = False
+        self.lora_weight_file = ""
         self.update = False
 
     def set_values(self, param_map):
@@ -48,6 +49,7 @@ class InferFlux1Param(core.CWorkflowTaskParam):
             param_map["vae_enable_slicing"])
         self.vae_enable_tiling = utils.strtobool(
             param_map["vae_enable_tiling"])
+        self.lora_weight_file = str(param_map["lora_weight_file"])
         self.update = True
 
     def get_values(self):
@@ -65,7 +67,8 @@ class InferFlux1Param(core.CWorkflowTaskParam):
             "num_images_per_prompt": str(self.num_images_per_prompt),
             "enable_model_cpu_offload": str(self.enable_model_cpu_offload),
             "vae_enable_slicing": str(self.vae_enable_slicing),
-            "vae_enable_tiling": str(self.vae_enable_tiling)
+            "vae_enable_tiling": str(self.vae_enable_tiling),
+            "lora_weight_file": str(self.lora_weight_file)
         }
         return param_map
 
@@ -88,6 +91,7 @@ class InferFlux1(core.CWorkflowTask):
 
         current_param = self.get_param_object()
         self.model_name = current_param.model_name
+        self.lora_weight_file = current_param.lora_weight_file
         self.device = torch.device("cpu")
         self.generator = None
         self.seed = None
@@ -129,8 +133,8 @@ class InferFlux1(core.CWorkflowTask):
         param = self.get_param_object()
 
         # Load pipeline
-        if self.pipe is None or self.model_name != param.model_name:
-            self.model_name = param.model_name
+        if self.pipe is None or self.model_name != param.model_name or self.lora_weight_file != param.lora_weight_file:
+            self.model_name, self.lora_weight_file = param.model_name, param.lora_weight_file
             self.pipe = load_pipe(param, self.model_folder)
 
         self.set_generator(param.seed)

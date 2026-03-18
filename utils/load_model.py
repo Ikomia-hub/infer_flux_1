@@ -147,6 +147,12 @@ def load_pipe(param, folder_path):
         torch_dtype=dtype,
     ).to(device)
 
+    if param.lora_weight_file:
+        # Extract folder path and file name
+        lora_folder_path = os.path.dirname(param.lora_weight_file)
+        lora_file_name = os.path.basename(param.lora_weight_file)
+        pipe.load_lora_weights(lora_folder_path, weight_name=lora_file_name)
+
     if param.enable_model_cpu_offload:
         pipe.enable_model_cpu_offload()
 
