@@ -28,16 +28,17 @@ def get_model_info(parameters):
     repo = None
     model_version = None
 
-    if parameters.model_name == 'flux1-dev':
-        if parameters.token:
-            login(token=parameters.token)
-        else:
-            print('Please use a Hugging Face token to use the FLUX dev model')
+    if not parameters.token:
+        print('Please use a Hugging Face token to use the FLUX models')
+        return None, None
 
+    login(token=parameters.token)
+
+    if parameters.model_name == 'flux1-dev':
         repo = "black-forest-labs/FLUX.1-dev"
         model_version = "dev"
 
-    if parameters.model_name == 'flux1-schnell':
+    elif parameters.model_name == 'flux1-schnell':
         repo = "black-forest-labs/FLUX.1-schnell"
         model_version = "schnell"
 

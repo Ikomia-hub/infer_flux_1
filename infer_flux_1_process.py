@@ -19,7 +19,6 @@ class InferFlux1Param(core.CWorkflowTaskParam):
         self.model_name = "flux1-schnell"
         self.prompt = "A cat holding a sign that says hello world, outdoor, garden"
         self.token = ""
-        self.cuda = torch.cuda.is_available()
         self.guidance_scale = 0
         self.num_inference_steps = 4
         self.seed = -1
@@ -38,7 +37,6 @@ class InferFlux1Param(core.CWorkflowTaskParam):
         self.model_name = str(param_map["model_name"])
         self.prompt = param_map["prompt"]
         self.token = param_map["token"]
-        self.cuda = utils.strtobool(param_map["cuda"])
         self.guidance_scale = float(param_map["guidance_scale"])
         self.seed = int(param_map["seed"])
         self.num_inference_steps = int(param_map["num_inference_steps"])
@@ -61,7 +59,6 @@ class InferFlux1Param(core.CWorkflowTaskParam):
             "model_name": str(self.model_name),
             "prompt": str(self.prompt),
             "token": str(self.token),
-            "cuda": str(self.cuda),
             "guidance_scale": str(self.guidance_scale),
             "num_inference_steps": str(self.num_inference_steps),
             "seed": str(self.seed),
@@ -96,7 +93,6 @@ class InferFlux1(core.CWorkflowTask):
         self.model_name = current_param.model_name
         self.lora_weight_file = current_param.lora_weight_file
         self.device = torch.device("cpu")
-        self.pipe = None
         self.generator = None
         self.seed = None
         self.width = 1024
@@ -104,6 +100,7 @@ class InferFlux1(core.CWorkflowTask):
         self.model_folder = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "weights")
         self.max_sequence_length = 256
+        self.pipe = load_pipe(current_param, self.model_folder)
 
     def get_progress_steps(self):
         # Function returning the number of progress steps for this algorithm
