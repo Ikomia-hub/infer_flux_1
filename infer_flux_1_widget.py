@@ -1,10 +1,13 @@
 import os
+
+# PyQt GUI framework
+from PyQt6.QtWidgets import *
+
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
+
 from infer_flux_1.infer_flux_1_process import InferFlux1Param
 from infer_flux_1.utils.widget_utils import Autocomplete
-# PyQt GUI framework
-from PyQt5.QtWidgets import *
 
 
 # --------------------
@@ -112,7 +115,7 @@ class InferFlux1Widget(core.CWorkflowTaskWidget):
         self.browse_weight_file = pyqtutils.BrowseFileWidget(
             path=self.parameters.lora_weight_file,
             tooltip="Select file",
-            mode=QFileDialog.ExistingFile
+            mode=QFileDialog.FileMode.ExistingFile
         )
         row = self.grid_layout.rowCount()
         self.grid_layout.addWidget(self.label_hyp, row, 0)

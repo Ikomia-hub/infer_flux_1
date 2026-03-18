@@ -205,7 +205,7 @@ class InferFlux1Factory(dataprocess.CTaskFactory):
         self.info.license = "Apache License 2.0"
 
         # Ikomia API compatibility
-        # self.info.min_ikomia_version = "0.11.1"
+        self.info.min_ikomia_version = "0.16.0"
         # self.info.max_ikomia_version = "0.11.1"
 
         # Python compatibility
